@@ -1,0 +1,23 @@
+dataset: ogbnarxiv
+data:
+  graph_dataset:
+    ogbnarxiv: /Users/macsaumya/Documents/BTP/Model and Data/edgehetero-nodeproppred/data/ogbnarxiv_heterodata_subset_40pct.pt
+node_embs: preloaded_in_subset
+edge_type_selection:
+  ogbnarxiv:
+  - references
+  - author
+  - venue
+  - fos
+optimizer:
+  lr: 0.001
+  weight_decay: 0
+model:
+  name: RevGAT
+  hidden_channels: 64
+  num_layers: 2
+  dropout: 0.5
+  heads: 2
+early_stop_threshold: 30
+epochs: 500
+runs: 3

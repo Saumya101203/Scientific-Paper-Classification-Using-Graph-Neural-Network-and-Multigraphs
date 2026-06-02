@@ -1,0 +1,52 @@
+seed: 1911
+dataset: ogbnarxiv # ogbnarxiv/pubmed.
+edge_type_selection: # (un-)comment accordingly to specify used subgraphs.
+  ogbnarxiv:
+    - references
+    - author
+    - venue
+    # - fos
+  pubmed:
+    - references
+    - author
+    - journal
+    - mesh
+node_embs: simtg # default/simtg/tape.
+data:
+  graph_dataset:
+    ogbnarxiv: data/ogbnarxiv_heterodata.pt
+    pubmed: data/pubmed_heterodata.pt
+  simtg_embs:
+    ogbnarxiv: data/embeddings/ogbnarxiv_simtg_x_embs.pt
+    pubmed: data/embeddings/pubmed_simtg_x_embs.pt
+  tape_embs: 
+    ogbnarxiv: data/embeddings/ogbnarxiv-tape-seed0.emb
+    pubmed: data/embeddings/pubmed-tape-seed0.emb
+optimizer:
+  lr: 0.001
+  weight_decay: 0
+model:
+  name: SAGE
+  hidden_channels: 128
+  num_layers: 2
+  dropout: 0.0
+  dropedge_prob: 0.2
+  custom_aggr: "homophily_weighted_mean"
+  
+  # --- NEW: Correct & Smooth Parameters ---
+  # "Correct" phase (propagates errors)
+  cs_correct_layers: 50       # Standard setting: deep propagation
+  cs_correct_alpha: 1.0       # Standard setting: full residual propagation
+  
+  # "Smooth" phase (propagates predictions)
+  cs_smooth_layers: 50        # Standard setting: deep propagation
+  cs_smooth_alpha: 0.8        # Your script sweeps this, but 0.8 is a good default
+
+  # (Optional) Keep these if you switch back to simple LP, 
+  # but C&S ignores them in the current script.
+  lp_layers: 10
+  lp_alpha: 0.1
+
+early_stop_threshold: 20
+epochs: 500
+runs: 1 # ⚠️ Recommended: Increase to 3 or 5 to see if C&S stabilizes variance

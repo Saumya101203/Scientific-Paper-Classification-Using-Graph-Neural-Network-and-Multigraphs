@@ -1,0 +1,22 @@
+data:
+  graph_dataset:
+    ogbnarxiv: /Users/macsaumya/Documents/BTP/Model and Data/edgehetero-nodeproppred/data/ogbnarxiv_heterodata_subset_20pct.pt
+dataset: ogbnarxiv
+early_stop_threshold: 30
+edge_type_selection:
+  ogbnarxiv:
+  - references
+  - author
+  - venue
+  - fos
+epochs: 500
+model:
+  dropout: 0.5
+  hidden_channels: 128
+  name: SAGE
+  num_layers: 2
+node_embs: preloaded_in_subset
+optimizer:
+  lr: 0.001
+  weight_decay: 0
+runs: 1

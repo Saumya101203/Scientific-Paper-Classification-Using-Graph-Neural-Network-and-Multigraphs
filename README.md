@@ -1,156 +1,68 @@
-# Scientific Paper Classification using Graph Neural Networks and Directed Multigraphs
+# Article Classification with Graph Neural Networks and Multigraphs
 
-> **B.Tech Major Project** — Department of Computer Science & Engineering, IIT Patna
-> **Author:** Saumya Pratap Singh (2201AI35)
-> **Supervisor:** Dr. Sourav Kumar Dandapat
+[![arXiv](https://img.shields.io/badge/arXiv-2309.11341-b31b1b.svg)](https://arxiv.org/abs/2309.11341)
+![Static Badge](https://img.shields.io/badge/ACL_Anthology-2024.lrec--main.136-b31b1b)
 
----
+![](ehgnn_cover_art.png)
 
-## Overview
+Repository for the "Article Classification with Graph Neural Networks and Multigraphs" 2022-2023 UvA MSc Data Science thesis project, in collaboration with Elsevier.
 
-This repository contains the full implementation, experiments, and poster for the B.Tech thesis on classifying scientific papers using Graph Neural Networks (GNNs) on directed multigraphs. The work targets the **OGBN-arXiv** benchmark (169,343 papers, 40 classes) and proposes a 4-phase pipeline that addresses two structural failures in conventional GNN pipelines:
+Published as a conference paper at [LREC-COLING 2024](https://aclanthology.org/2024.lrec-main.136/) main track.
 
-- **Homogeneity assumption** — only citation edges, discarding co-authorship, venue, and field-of-study signals
-- **Undirectedness assumption** — citation direction erased, losing the seminal-paper vs. survey-paper distinction
-
-The complete pipeline achieves **78.14% micro-accuracy** and **65.99% macro-accuracy**, statistically validated via McNemar's Test ($\chi^2 = 28.79$, $p = 8.07 \times 10^{-8}$).
-
----
-
-## Key Results
-
-| Configuration | Micro Acc. | Params |
-|---|---|---|
-| Paper baseline (Ly et al. 2024) | 77.21% | — |
-| + Directed edges — Phase 1 | 77.61% | 0.8M |
-| + DropEdge + Ensemble — Phase 2 | **78.14%** | 1.26M |
-| + GraphSMOTE — Phase 3 | 77.98% | 1.26M |
-| + TF-IDF Late-Fusion — Phase 4 | 77.98% | 1.66M |
-| TransformerConv + Fusion | 77.67% | 2.60M |
-| **GraphSAGE + Fusion (final)** | **77.74%** | **1.26M** |
-
-**Macro-accuracy:** baseline `<50%` → **65.99%** after Late-Fusion across all 40 categories.
-
----
-
-## Pipeline Architecture
-
+## Directory Overview ##
 ```
-OGBN-arXiv (169,343 papers · 40 classes)
-        │
-        ▼
-┌─────────────────────────────────────────────┐
-│  Phase 1 · Directed Multigraph              │
-│  Edge split: cites + cited_by (HeteroConv)  │
-│  → 79.02% val (first untuned run)           │
-└────────────────────┬────────────────────────┘
-                     │
-        ▼
-┌─────────────────────────────────────────────┐
-│  Phase 2 · Targeted Regularisation          │
-│  DropEdge (p=0.50 cited_by) + Perturbation  │
-│  + 3-model ensemble logit averaging         │
-│  → 78.14% micro (+0.53 pp)                 │
-└────────────────────┬────────────────────────┘
-                     │
-        ▼
-┌─────────────────────────────────────────────┐
-│  Phase 3 · GraphSMOTE Topology Balancing    │
-│  10,090 synthetic nodes · 16 minority cls.  │
-│  → Class 12 (5 samples): 100% accuracy      │
-└────────────────────┬────────────────────────┘
-                     │
-        ▼
-┌─────────────────────────────────────────────┐
-│  Phase 4 · Lexical-Semantic Late-Fusion     │
-│  TF-IDF (500d) ‖ SimTG (1024d) = 1524d     │
-│  → Macro: <50% → 65.99%                    │
-└────────────────────┬────────────────────────┘
-                     │
-        ▼
-   Correct & Smooth (α₂ = 0.6)
-   78.14% micro · 65.99% macro
+edgehetero-nodeproppred/
+├─ config/
+│  ├─ data_generation_config.yaml
+│  ├─ experiments_config.yaml
+├─ data/
+│  ├─ embeddings/                       # node features.                    
+│  ├─ tables/                           # MAG/PubMed metadata.
+├─ models/                              # for checkpoints.
+├─ notebooks/                           # metadata retrieval notebooks (for reference only).
+├─ scripts/
+│  ├─ experiments.py                    # main GNN training script.
+│  ├─ models.py                         # GNN models.
+│  ├─ multigraph.py                     # convert datasets to multigraphs.
+│  ├─ simtg.py                          # SimTG LM PEFT.
+│  ├─ utils.py
 ```
 
----
+## Requirements
+* Python 3.10
+* PyTorch 1.13.1
+* PyTorch Geometric 2.3.0 (+ pyg-lib, torch-sparse, torch-scatter)
+* OGB 1.3.6
+* Pandas
+* NumPy
+* tqdm
+* PyArrow
+* PyYAML
+#### Additional requirements for SimTG finetuning:
+* transformers 4.26.1
+* datasets 2.10.1
+* peft 0.7.1
+* evaluate 0.4.1
 
+## Reproduce Experiments ##
+Repository should be cloned with Git LFS.
 
-## Key Contributions
+Pre-computed SimTG ([Duan et al., 2023](https://github.com/vermouthdky/SimTeG)) and TAPE ([He et al., 2024](https://github.com/XiaoxinHe/TAPE)) embeddings for both datasets can be downloaded in [this Drive folder](https://drive.google.com/drive/folders/1NxouExEaUufrrkh7SI_8TBSfXB-dLM15?usp=sharing). Place them in `data/embeddings`.
 
-1. **Directed Multigraph with Reverse Message Passing** — First application of the AAAI-24 Egressy et al. framework to OGBN-arXiv. The first untuned run hit 79.02% validation accuracy, clearing the 77–78% undirected plateau without any hyperparameter tuning.
+**Generate data**: run `python scripts/multigraph.py`, which generates and transforms the data object using the metadata files in `data/tables`. Specify the dataset to transform in `config/data_generation_config.yml`.
 
-2. **Lexical-Semantic Late-Fusion** — Concatenating 500-dim TF-IDF sparse flags with 1024-dim SimTG embeddings (1524-dim total). Macro-accuracy climbed from `<50%` to **65.99%** across all 40 categories. TF-IDF dimensions act as hard lexical switches that neighbourhood aggregation cannot override.
+**To reproduce**: run `python scripts/experiments.py` to train model and print results. Dataset, model choice and all relevant parameters can be specified in `experiments_config.yaml`. The currently-set defaults will reproduce the ogbn-arxiv GraphSAGE results.
 
-3. **GraphSMOTE Topology Balancing** — 10,090 synthetic nodes generated for 16 minority classes via graph-adapted SMOTE. Class 12 (cs.CE), starting from just 5 training samples, reached **100% test accuracy** after augmentation.
+## Results ##
+10-run average results on full-supervised transductive node classification using optimal multigraph configuration. See the paper for ablation results, baseline results on the unmodified graph, and parameter choices to reproduce individual cases.
 
-4. **Negative Result: Super-Node Addiction** — Synthetic hub nodes connected to all minority training members caused macro-accuracy to collapse from 65.99% to 64.16% at test time, establishing a hard ceiling for topology-only interventions and demonstrating that feature-level fusion is strictly preferable to topological injection for heterophily resolution.
-
-5. **Efficiency Benchmark** — A 1.26M-parameter GraphSAGE model outperforms a 2.6M-parameter TransformerConv variant (77.74% vs. 77.67%), converging 25 epochs sooner.
-
----
-
-## Forensic Fixes (Reproducibility Notes)
-
-Two implementation bugs were discovered and fixed before any valid results could be reported — both are documented in Chapter 3 of the thesis:
-
-**Data Leakage in Subgraph Generation** — An early FOS edge-creation script sorted candidate nodes by label index before applying the density cap, inadvertently encoding ground-truth labels into the graph topology. This produced artificially inflated test accuracies near 96%. All experiments use only the validated, label-agnostic pipeline.
-
-**Logit vs. Log-Probability Conflict** — The GNN's final layer was emitting `log_softmax` outputs that were then passed to `CrossEntropyLoss` (which internally applies another softmax). This compounded softmax effectively reduced the trained GNN to a graph-agnostic MLP. Fixed by removing all terminal activations and returning raw logits.
-
----
-
-## Poster
-
-The conference poster is in `poster/` and is compiled with **LuaLaTeX** (required by the Gemini theme's `fontspec` dependency).
-
-```bash
-cd poster
-lualatex poster_thesis.tex
-```
-
-The pipeline diagram is drawn entirely in TikZ — no external figure files are required.
-
----
-
-## Citation
-
-If you use this work, please cite:
-
-```bibtex
-@thesis{singh2026gnn,
-  author    = {Saumya Pratap Singh},
-  title     = {Scientific Paper Classification using Graph Neural Networks
-               and Directed Multigraphs},
-  school    = {Indian Institute of Technology Patna},
-  year      = {2026},
-  type      = {B.Tech Project Report}
-}
-```
-
-Primary references this work builds on:
-
-```bibtex
-@misc{ly2024multigraph,
-  author = {Khang Ly and Yury Kashnitsky and Savvas Chamezopoulos
-            and Valeria Krzhizhanovskaya},
-  title  = {Article Classification with Graph Neural Networks and Multigraphs},
-  note   = {arXiv:2309.11341},
-  year   = {2024}
-}
-
-@inproceedings{egressy2024directed,
-  author    = {B{\'e}ni Egressy and Luc von Niederh{\"a}usern and
-               Jovan Blanu{\v{s}}a and Erik Altman and
-               Roger Wattenhofer and Kubilay Atasu},
-  title     = {Provably Powerful Graph Neural Networks for Directed Multigraphs},
-  booktitle = {AAAI-24},
-  year      = {2024}
-}
-```
-
----
-
-## License
-
-This project is released for academic and research purposes.
-See [LICENSE](LICENSE) for details.
+| Dataset    | GNN    | Default      | SimTG        | TAPE         |
+|------------|--------|--------------|--------------|--------------|
+| OGBN-arXiv | GCN    | 71.88 ± 0.06 | 77.30 ± 0.09 | 77.10 ± 0.10 |
+|            | GCN+JK | 71.56 ± 0.21 | 77.05 ± 0.10 | 76.66 ± 0.10 |
+|            | SAGE   | 71.37 ± 0.21 | 77.39 ± 0.15 | 76.68 ± 0.06 |
+|            | SGC    | 70.24 ± 0.05 | 77.24 ± 0.01 | 75.93 ± 0.17 |
+| PubMed     | GCN    | 89.15 ± 0.14 | 93.49 ± 0.16 | 93.59 ± 0.26 |
+|            | GCN+JK | 87.53 ± 0.62 | 94.11 ± 0.18 | 94.17 ± 0.13 |
+|            | SAGE   | 89.75 ± 0.09 | 95.51 ± 0.10 | 94.93 ± 0.13 |
+|            | SGC    | 86.56 ± 0.57 | 91.41 ± 0.13 | 91.20 ± 0.21 |
