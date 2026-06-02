@@ -12,30 +12,6 @@ This work investigates GNN expressivity limitations in large-scale scientific pa
 
 ---
 
-## Poster
-
-The poster (`poster/poster_thesis.tex`) is compiled with **LuaLaTeX** — required by the Gemini theme's `fontspec` dependency. Do **not** use `pdflatex`.
-
-```bash
-cd poster
-lualatex poster_thesis.tex
-```
-
-### Poster Files
-
-```
-poster/
-├── poster_thesis.tex           # Main poster source
-├── beamerthemegemini.sty       # Gemini beamer theme
-├── beamercolorthememsu.sty     # MSU colour theme
-├── poster.bib                  # Bibliography
-└── logos/
-    └── iitpatna.png            # Institute logo
-```
-
-> The pipeline diagram is drawn entirely in TikZ — no external figure files are required.
-
----
 
 ## Key Results
 
